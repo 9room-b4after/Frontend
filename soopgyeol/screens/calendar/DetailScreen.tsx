@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState,useEffect } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
@@ -9,11 +9,10 @@ import axios from 'axios';
 export default function DetailScreen() {
   const navigation = useNavigation();
 
-  const route = useRoute<RouteProp<RootStackParamList, 'DetailScreen'>>();
-  const { name, carbonGrams, category, explanation } = route.params;
+  const route = useRoute<RouteProp<RootStackParamList, 'Detail'>>();
+  const { name, carbonGrams, category, explanation, carbonItemId } = route.params;
   const [quantity, setQuantity] = useState(1);
   const userId = 1;       
-  const carbonItemId = 1;
 
   const handleMinus = () => {
     if (quantity > 1) setQuantity(quantity - 1);
@@ -40,6 +39,9 @@ export default function DetailScreen() {
       alert('저장에 실패했습니다. 다시 시도해주세요.');
     }
   };
+  useEffect(() => {
+  console.log('받은 carbonItemId:', carbonItemId);
+}, []);
   return (
     <View style={styles.container}>
       {/* 상단 바 */}
@@ -96,8 +98,6 @@ export default function DetailScreen() {
     </View>
   );
 }
-
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,

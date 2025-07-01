@@ -26,24 +26,28 @@ export default function CalendarScreen({ calendarRef }: { calendarRef: React.Ref
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [records, setRecords] = useState<CarbonRecord[]>([]);
 
-  const userId = 1;
+  const userId: number = 1;
 
   useFocusEffect(
-  React.useCallback(() => {
-    const fetchRecords = async () => {
-      try {
-        const response = await axios.get('https://soopgyeol.site/carbon/log', {
-          params: { userId }
-        });
-        setRecords(response.data.data); // 데이터만 저장
-      } catch (error) {
-        console.error('탄소 기록 조회 실패:', error);
-      }
-    };
+    React.useCallback(() => {
+      const fetchRecords = async () => {
+        try {
+            const response = await axios.get('https://soopgyeol.site/carbon/log', {
+            params: {
+              userId: userId 
+            }
+          });
+          console.log('전체 응답:', JSON.stringify(response.data, null, 2));
 
-    fetchRecords();
-  }, [])
-);
+          setRecords(response.data.data); 
+        } catch (error) {
+          console.error('탄소 기록 조회 실패:', error);
+        }
+      };
+
+      fetchRecords();
+    }, [])
+  );
 
   return (
     <View style={styles.container}>
@@ -102,7 +106,7 @@ export default function CalendarScreen({ calendarRef }: { calendarRef: React.Ref
       </View>
       <TouchableOpacity
         style={styles.button}
-        onPress={() => navigation.navigate('SearchScreen')}
+        onPress={() => navigation.navigate('Search')}
         >
         <Text style={styles.buttonText}>탄소 소비 기록하기</Text>
       </TouchableOpacity>

@@ -5,6 +5,8 @@ import type { RootStackParamList } from './types/navigation';
 import TabNavigator from './navigation/TabNavigator';
 import SearchScreen from './screens/calendar/SearchScreen';
 import DetailScreen from './screens/calendar/DetailScreen';
+import RewardListScreen from './screens/reward/RewardListScreen';
+import RewardDetailScreen from './screens/reward/RewardDetailScreen';
 import HomeScreen from './screens/home/HomeScreen';
 import SplashScreen from './screens/SplashScreen';
 import LoginScreen from './screens/LoginScreen';
@@ -23,13 +25,15 @@ export default function App() {
         screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Main" component={TabNavigator} />
         <Stack.Screen name="Login" component={LoginScreen} />
-        <Stack.Screen name="SearchScreen" component={SearchScreen} />
-        <Stack.Screen name="DetailScreen" component={DetailScreen} />
+        <Stack.Screen name="Search" component={SearchScreen} />
+        <Stack.Screen name="Detail" component={DetailScreen} />
         <Stack.Screen name="Home" component={HomeScreen} />
         <Stack.Screen name="Splash" component={SplashScreen} options={{ headerShown: false }} />
         <Stack.Screen name="Nickname" component={NicknameScreen} />
         <Stack.Screen name="Shop" component={ShopScreen} />
         <Stack.Screen name="Profile" component={ProfileScreen} />
+        <Stack.Screen name="RewardList" component={RewardListScreen} />
+        <Stack.Screen name="RewardDetail" component={RewardDetailScreen} />
       </Stack.Navigator>
 
     </NavigationContainer>

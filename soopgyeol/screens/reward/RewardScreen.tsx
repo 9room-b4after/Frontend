@@ -1,11 +1,15 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, Dimensions, ImageBackground  } from 'react-native';
 import Colors from '../../components/Colors';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../../types/navigation';
+import { useNavigation } from '@react-navigation/native';
 
 const { width } = Dimensions.get('window');
 
 export default function RewardScreen() {
-return (
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  return (
     <View style={styles.container}>
       <Image
         source={require('../../assets/bg_profile_mint.png')}
@@ -19,9 +23,12 @@ return (
               <Image source={require('../../assets/ic_just_coin.png')} style={styles.coinImage} />
               <Text style={styles.coinText}>24</Text>
             </View>
-            <TouchableOpacity style={styles.queryButton}>
-              <Text style={styles.queryText}>조회</Text>
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.queryButton}
+                onPress={() => navigation.navigate('RewardList')}
+              >
+                <Text style={styles.queryText}>조회</Text>
+              </TouchableOpacity>
           </View>
       </View>
 
@@ -31,7 +38,9 @@ return (
           source={require('../../assets/img_reward_item_bg.png')}
           style={styles.cardBackground}
           resizeMode="contain" >
-          <Text style={styles.cardTitle}>다회용컵 사용 3회</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('RewardDetail')}>
+            <Text style={styles.cardTitle}>다회용컵 사용 3회</Text>
+          </TouchableOpacity>
           <Image source={require('../../assets/img_cup.png')} style={styles.cardImage} />
           <View style={styles.badgeRow}>
             <View style={styles.progressBadge}>

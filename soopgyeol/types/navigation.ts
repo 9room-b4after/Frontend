@@ -10,6 +10,8 @@ export type RootStackParamList = {
   Splash: undefined;
   Login: undefined;
   Nickname: undefined;
+  RewardList: undefined;
+  RewardDetail: undefined;
   Main: {
     screen?: keyof TabParamList;
     params?: {
@@ -29,7 +31,6 @@ export type RootStackParamList = {
   Home: undefined;
   Shop: undefined;
   Profile: undefined;
-  SearchScreen: undefined;
-  DetailScreen: { name: string; carbonGrams: number; category: string; explanation: string;
-  };
+  Search: undefined;
+  Detail: { name: string; carbonGrams: number; category: string; explanation: string; carbonItemId: number; };
 };

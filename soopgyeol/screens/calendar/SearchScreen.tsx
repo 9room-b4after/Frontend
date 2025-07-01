@@ -1,5 +1,4 @@
 // SearchScreen.tsx
-
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -13,6 +12,7 @@ type CarbonItem = {
   carbonGrams: number;
   category: string;
   explanation: string;
+  carbonItemId: number;
 };
 
 export default function SearchScreen() {
@@ -28,8 +28,9 @@ export default function SearchScreen() {
         userInput: searchText.trim(),
       });
     console.log('API 응답:', response.data); 
-
+      
     const data: CarbonItem = response.data.data;
+    console.log('응답 데이터:', data);
 
     if (!data || !data.name) {
       setNotFound(true);
@@ -38,15 +39,18 @@ export default function SearchScreen() {
 
     setNotFound(false);
 
-      navigation.navigate('DetailScreen', {
+      navigation.navigate('Detail', {
         name: data.name,
         carbonGrams: data.carbonGrams,
         category: data.category,
         explanation: data.explanation,
+        carbonItemId: data.carbonItemId,
+        
       });
     } catch (error) {
       console.error('API 호출 오류:', error);
     }
+    
   };
 
   return (

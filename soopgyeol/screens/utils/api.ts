@@ -1,3 +1,3 @@
 // utils/api.ts
 
-export const BASE_URL = 'https://soopgyeol.site';
+export const BASE_URL = 'https://soopgyeol.site/';

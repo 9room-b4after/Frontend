@@ -1,5 +1,5 @@
 // screens/HomeScreen.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect  } from 'react';
 import { View, Text, StyleSheet, Image, Dimensions, ImageBackground, SafeAreaView } from 'react-native';
 import { Feather, MaterialIcons, Ionicons, FontAwesome } from '@expo/vector-icons';
 import { TouchableOpacity } from 'react-native';
@@ -8,12 +8,34 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../types/navigation';
 import TopHeader from '../../components/TopHeader';
+import axios from 'axios';
 
 const screenWidth = Dimensions.get('window').width;
 
 export default function HomeScreen() {
   const [selectedTopIcon, setSelectedTopIcon] = useState<'shop' | 'profile' | null>(null);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const [treeMessage, setTreeMessage] = useState('');
+
+  useEffect(() => {
+    const fetchTreeStage = async () => {
+      try {
+        const userId = 1; 
+        const response = await axios.get(`https://soopgyeol.site/tree-stage/${userId}`);
+        if (response.data.success) {
+          setTreeMessage(response.data.data);
+        } else {
+          setTreeMessage('단계 정보를 가져오지 못했습니다.');
+        }
+      } catch (error) {
+        setTreeMessage('에러가 발생했습니다.');
+        console.error(error);
+      }
+    };
+
+    fetchTreeStage();
+  }, []);
+
 
   return (
     <SafeAreaView style={styles.container}>
