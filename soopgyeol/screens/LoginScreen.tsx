@@ -4,78 +4,80 @@ import { View, Text, Image, StyleSheet, TouchableOpacity, Dimensions  } from 're
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
-import * as Google from 'expo-auth-session/providers/google';
-import { useEffect,useState } from 'react';
 import axios from 'axios';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const screenWidth = Dimensions.get('window').width;
 export default function LoginScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const handleGoogleLogin = async () => {
     try {
-      const response = await axios.get('https://soopgyeol.site/api/v1/auth/oauth/oauth2/google/url');
+      const response = await axios.get(
+        'https://soopgyeol.site/api/v1/auth/oauth/oauth2/google/url',
+        {
+          params: {
+            redirectUri: 'soopgyeol://oauth-callback/google',
+          },
+        }
+      );
+
       const googleUrl = response.data.url;
+      console.log('Google 로그인 URL:', googleUrl);
 
       const result = await WebBrowser.openAuthSessionAsync(
         googleUrl,
-        'https://soopgyeol.site/api/v1/auth/oauth/oauth2/google/code-log'
+        'soopgyeol://oauth-callback/google' 
       );
-
       if (result.type === 'success' && result.url) {
-        const url = result.url;
-        const code = extractCodeFromUrl(url);
+        const parsed = Linking.parse(result.url);
+        const token = parsed.queryParams?.token;
 
-        const jwtResponse = await axios.post(
-          'https://soopgyeol.site/api/v1/auth/oauth/oauth2/google/code',
-          {
-            provider: 'google',
-            code,
-          }
-        );
-
-        const token = jwtResponse.data.token;
-        console.log('Google JWT:', token);
-        navigation.navigate('Nickname');
+        if (typeof token === 'string') {
+          console.log('구글 토큰:', token); 
+          await AsyncStorage.setItem('accessToken', token);
+          navigation.navigate('Nickname');
+        }
       }
     } catch (err) {
-      console.error('구글 로그인 실패:', err); 
-      if (axios.isAxiosError(err)) {
-        console.log('Axios 응답 데이터:', err.response?.data);
-        console.log('Axios 상태 코드:', err.response?.status);
-        console.log('Axios 전체 응답:', err.response);
-      }
+      console.error('구글 로그인 실패:', err);
     }
   };
 
-  const handleKakaoLogin = async () => {
-    try {
-      const response = await axios.get('https://soopgyeol.site/api/v1/auth/oauth/oauth2/kakao/url');
-      const kakaoUrl = response.data.url;
+const handleKakaoLogin = async () => {
 
-      const result = await WebBrowser.openAuthSessionAsync(kakaoUrl, 'https://soopgyeol.site/api/v1/auth/oauth/oauth2/kakao/code-log');
+  try {
+    const response = await axios.get(
+      'https://soopgyeol.site/api/v1/auth/oauth/oauth2/kakao/url',
+      {
+        params: {
+          redirectUri: 'soopgyeol://oauth-callback/kakao',
+        },
+      }
+    );
 
-      if (result.type === 'success' && result.url) {
-        const url = result.url;
-        const code = extractCodeFromUrl(url); 
-        const jwtResponse = await axios.post('https://soopgyeol.site/api/v1/auth/oauth/login', {
-          provider: 'kakao',
-          code,
-        });
-        const token = jwtResponse.data.token;
-        console.log('Kakao JWT:', token);
+    const kakaoUrl = response.data.url;
+
+    const result = await WebBrowser.openAuthSessionAsync(
+      kakaoUrl,
+      'soopgyeol://oauth-callback/kakao'
+    );
+
+    if (result.type === 'success' && result.url) {
+      const parsed = Linking.parse(result.url);
+      const token = parsed.queryParams?.token;
+
+      if (typeof token === 'string') {
+        console.log('카카오 토큰:', token); 
+        await AsyncStorage.setItem('accessToken', token);
         navigation.navigate('Nickname');
       }
-    } catch (err) {
-      console.error('카카오 로그인 실패:', err);
     }
-  };
-
-  const extractCodeFromUrl = (url: string) => {
-    const parsed = Linking.parse(url);
-    return parsed.queryParams?.code;
-  };
+  } catch (err) {
+    console.error('카카오 로그인 실패:', err);
+  }
+};
 
   return (
     <View style={styles.container}>
@@ -89,9 +91,6 @@ export default function LoginScreen() {
         <TouchableOpacity style={styles.googleButton} onPress={handleGoogleLogin}>
           <Image source={require('../assets/ic_google.png')} style={styles.icon} />
           <Text style={styles.googleText}>구글 계정으로 로그인</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.textLoginButton}onPress={() => navigation.navigate('Nickname')}>
-          <Text style={styles.textLoginText}>로그인하기</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -159,17 +158,5 @@ const styles = StyleSheet.create({
     fontSize: 20,
     color: '#000',
     fontWeight: 'bold',
-  },
-
-  textLoginButton: {
-    marginTop: 12,
-    padding: 8,
-  },
-
-  textLoginText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#38B36D', 
-    textDecorationLine: 'underline',
   },
 });

@@ -12,14 +12,21 @@ import SplashScreen from './screens/SplashScreen';
 import LoginScreen from './screens/LoginScreen';
 import NicknameScreen from './screens/NicknameScreen';
 import ShopScreen from './screens/ShopScreen';
-import ProfileScreen from './screens/ProfileScreen';
+import InventoryScreen from './screens/InventoryScreen';
 
+import ProfileScreen from './screens/ProfileScreen';
+import OAuthRedirectHandler from './components/OAuthRedirectHandler'; 
+import * as WebBrowser from 'expo-web-browser';
+
+WebBrowser.maybeCompleteAuthSession();
 const Stack = createNativeStackNavigator<RootStackParamList>(); 
 
 export default function App() {
   // @ts-ignore
   return (
     <NavigationContainer>
+      {/* ✅ NavigationContext 안쪽으로 옮김 */}
+      <OAuthRedirectHandler />
       <Stack.Navigator 
         initialRouteName="Splash" 
         screenOptions={{ headerShown: false }}>
@@ -31,6 +38,7 @@ export default function App() {
         <Stack.Screen name="Splash" component={SplashScreen} options={{ headerShown: false }} />
         <Stack.Screen name="Nickname" component={NicknameScreen} />
         <Stack.Screen name="Shop" component={ShopScreen} />
+        <Stack.Screen name="Inventory" component={InventoryScreen} />
         <Stack.Screen name="Profile" component={ProfileScreen} />
         <Stack.Screen name="RewardList" component={RewardListScreen} />
         <Stack.Screen name="RewardDetail" component={RewardDetailScreen} />

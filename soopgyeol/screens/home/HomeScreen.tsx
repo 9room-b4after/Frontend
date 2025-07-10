@@ -1,7 +1,6 @@
 // screens/HomeScreen.tsx
 import React, { useState, useEffect  } from 'react';
-import { View, Text, StyleSheet, Image, Dimensions, ImageBackground, SafeAreaView } from 'react-native';
-import { Feather, MaterialIcons, Ionicons, FontAwesome } from '@expo/vector-icons';
+import { View, Text, StyleSheet, Image, Dimensions, ImageBackground, SafeAreaView, ActivityIndicator  } from 'react-native';
 import { TouchableOpacity } from 'react-native';
 import Colors from '../../components/Colors';
 import { useNavigation } from '@react-navigation/native';
@@ -9,59 +8,149 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../types/navigation';
 import TopHeader from '../../components/TopHeader';
 import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const screenWidth = Dimensions.get('window').width;
+
 
 export default function HomeScreen() {
   const [selectedTopIcon, setSelectedTopIcon] = useState<'shop' | 'profile' | null>(null);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const [treeMessage, setTreeMessage] = useState('');
+  const [treeData, setTreeData] = useState<{ treeName: string; treeUrl: string; message: string } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [displayItems, setDisplayItems] = useState({
+    SKY: null,
+    LEFT_GROUND: null,
+    RIGHT_GROUND: null,
+  });
+
+  const getNextGradeParts = (treeName?: string) => {
+    switch (treeName) {
+      case '씨앗':
+        return { textBefore: '금방 ', highlight: '싹', textAfter: '이 돋을 거예요' };
+      case '새싹':
+        return { textBefore: '금방 ', highlight: '나무', textAfter: '가 될 거예요' };
+      case '작은 나무':
+        return { textBefore: '', highlight: '어디까지 커질까요?', textAfter: '' };
+      case '나무':
+        return { textBefore: '', highlight: '지구를 지켰습니다!', textAfter: '' };
+      default:
+        return { textBefore: '', highlight: '...', textAfter: '' };
+    }
+  };
+  const getHighlightColor = (treeName?: string) => {
+    if (treeName === '씨앗' || treeName === '새싹') return Colors.mint;
+    return '#000';
+  };
+  
+  const { textBefore, highlight, textAfter } = getNextGradeParts(treeData?.treeName);
+  const highlightColor = getHighlightColor(treeData?.treeName);
 
   useEffect(() => {
     const fetchTreeStage = async () => {
       try {
-        const userId = 1; 
-        const response = await axios.get(`https://soopgyeol.site/tree-stage/${userId}`);
+        const token = await AsyncStorage.getItem('accessToken');
+        if (!token) {
+          console.warn('토큰이 없습니다. 로그인 필요');
+          return;
+        }
+
+        const response = await axios.get('https://soopgyeol.site/tree-stage', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
         if (response.data.success) {
-          setTreeMessage(response.data.data);
+          setTreeData(response.data.data);
         } else {
-          setTreeMessage('단계 정보를 가져오지 못했습니다.');
+          console.warn('나무 단계 정보 없음');
         }
       } catch (error) {
-        setTreeMessage('에러가 발생했습니다.');
-        console.error(error);
+        console.error('나무 단계 API 에러:', error);
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchTreeStage();
-  }, []);
+  }, 
+  []);
+  useEffect(() => {
+  const fetchDisplayedItems = async () => {
+    try {
+      const token = await AsyncStorage.getItem('accessToken');
+      if (!token) return;
 
+      const res = await axios.get('https://soopgyeol.site/items/displayed', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (res.data.success) {
+        const items = res.data.data;
+
+        const categorized = {
+          SKY: items.find(item => item.category === 'SKY') || null,
+          LEFT_GROUND: items.find(item => item.category === 'LEFT_GROUND') || null,
+          RIGHT_GROUND: items.find(item => item.category === 'RIGHT_GROUND') || null,
+        };
+
+        setDisplayItems(categorized);
+      }
+    } catch (error) {
+      console.error('전시 아이템 조회 실패:', error);
+    }
+  };
+
+  fetchDisplayedItems();
+}, []);
 
   return (
     <SafeAreaView style={styles.container}>
       <TopHeader selected={selectedTopIcon} onSelect={setSelectedTopIcon} />
-      {/* 제목 및 설명 */}
+
       <View style={styles.textBox}>
         <Text style={styles.title}>
           오늘은 <Text style={styles.highlight}>나무</Text>가{'\n'}얼마나 자랐을까요?
         </Text>
-        <Text style={styles.subtitle}>
-          <Text style={styles.grade}>-</Text> 단계군요! 금방 <Text style={styles.nextgrade}>싹</Text>이 틀 거예요.
-        </Text>
+      <Text style={styles.subtitle}>
+        <Text style={styles.grade}>{treeData?.treeName ?? '-'}</Text> 단계군요! {textBefore}
+        <Text style={[styles.nextgrade, { color: highlightColor }]}>{highlight}</Text>
+        {textAfter}
+      </Text>
       </View>
 
-      {/* 배경 위에 씨앗 이미지 겹치기 */}
-      <ImageBackground
-        source={require('../../assets/img_home_main.png')}
-        style={styles.backgroundImage}
-        imageStyle={{ borderRadius: 20 }}
-      >
-        <Image
-          source={require('../../assets/img_seed_first.png')}
-          style={styles.seedImage}
-          resizeMode="contain"
-        />
-      </ImageBackground>
+      {loading ? (
+        <ActivityIndicator size="large" color={Colors.mint} style={{ marginTop: 40 }} />
+      ) : (
+        <ImageBackground
+          source={
+            treeData?.treeUrl
+              ? { uri: treeData.treeUrl }
+              : require('../../assets/img_home_main.png')
+          }
+          style={styles.backgroundImage}
+          imageStyle={{ borderRadius: 20 }}
+          >
+          <View style={styles.skyPosition}>
+            {displayItems.SKY && (
+              <Image source={{ uri: displayItems.SKY.url }} style={styles.displayedItemImage} resizeMode="contain" />
+            )}
+          </View>
+          <View style={styles.leftPosition}>
+            {displayItems.LEFT_GROUND && (
+              <Image source={{ uri: displayItems.LEFT_GROUND.url }} style={styles.displayedItemImage} resizeMode="contain" />
+            )}
+          </View>
+
+          <View style={styles.rightPosition}>
+            {displayItems.RIGHT_GROUND && (
+              <Image source={{ uri: displayItems.RIGHT_GROUND.url }} style={styles.displayedItemImage} resizeMode="contain" />
+            )}
+          </View>
+        </ImageBackground>
+      )}
     </SafeAreaView>
   );
 }
@@ -109,17 +198,20 @@ const styles = StyleSheet.create({
   },
   highlight: {
     color: Colors.mint,
+    fontWeight: 'bold'
   },
   subtitle: {
     marginTop: 15,
     fontSize: 20,
-    fontWeight: '600',
+    fontWeight: 'bold'
   },
   grade: {
     color: Colors.mint,
+    fontWeight: 'bold'
   },
   nextgrade: {
     color: Colors.mint,
+    fontWeight: 'bold'
   },
   backgroundImage: {
     width: screenWidth - 54,
@@ -131,10 +223,38 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     position: 'relative', 
   },
-  seedImage: {
-    width: '100%',
-    height: 30,
-    position: 'absolute', 
-    bottom: 35,     
+  skyPosition: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 320,
+    alignItems: 'center',  
+    justifyContent: 'center',
   },
+
+  leftPosition: {
+    position: 'absolute',
+    top: 320,
+    left: 0,
+    width: '50%',
+    bottom: 0,
+    alignItems: 'center',  
+    justifyContent: 'center',
+  },
+
+  rightPosition: {
+    position: 'absolute',
+    top: 320,
+    right: 0,
+    width: '50%',
+    bottom: 0,
+    alignItems: 'center',  
+    justifyContent: 'center',
+  },
+  displayedItemImage: {
+    width: 130,
+    height: 130,
+  },
+
 });

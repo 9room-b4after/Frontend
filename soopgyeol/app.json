@@ -2,7 +2,8 @@
   "expo": {
     "name": "soopgyeol",
     "slug": "soopgyeol",
-    "scheme": "soopgyeol",  
+    "scheme": "soopgyeol", 
+    "deepLinking": true, 
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/ic_thumbnail.png",
@@ -14,7 +15,12 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": true
+        }
+      }
     },
     "android": {
       "adaptiveIcon": {

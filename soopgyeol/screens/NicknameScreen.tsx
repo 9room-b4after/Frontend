@@ -1,13 +1,46 @@
 // screens/NicknameScreen.tsx
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, Keyboard, TouchableWithoutFeedback } from 'react-native';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, Keyboard, Alert, TouchableWithoutFeedback } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation'; 
+import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function NicknameScreen() {
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
     const [nickname, setNickname] = useState('');
+
+    const handleSaveNickname = async () => {
+      if (nickname.length < 2) {
+        Alert.alert('닉네임은 최소 2글자 이상이어야 합니다.');
+        return;
+      }
+
+      try {
+        const token = await AsyncStorage.getItem('accessToken');
+        if (!token) {
+          Alert.alert('로그인이 필요합니다.');
+          return;
+        }
+
+        await axios.patch(
+          'https://soopgyeol.site/api/v1/users/me/nickname',
+          { nickname },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+
+        navigation.navigate('Main');
+      } catch (err: any) {
+        console.error('닉네임 저장 오류:', err);
+        Alert.alert('닉네임 저장에 실패했습니다.');
+      }
+    };
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -27,18 +60,9 @@ export default function NicknameScreen() {
             <TouchableOpacity style={styles.cancelButton} onPress={() => navigation.goBack()}>
               <Text style={styles.cancelText}>취소</Text>
             </TouchableOpacity>
-              <TouchableOpacity
-              style={styles.confirmButton}
-              onPress={() => {
-                  if (nickname.length < 2) {
-                  alert('닉네임은 최소 2글자 이상이어야 합니다.');
-                  return;
-                  }
-                  navigation.navigate('Main');
-              }}
-              >
+            <TouchableOpacity style={styles.confirmButton} onPress={handleSaveNickname}>
               <Text style={styles.confirmText}>확인</Text>
-              </TouchableOpacity>
+            </TouchableOpacity>
           </View>
         </View>
       </View>

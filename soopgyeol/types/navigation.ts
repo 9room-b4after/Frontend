@@ -11,26 +11,13 @@ export type RootStackParamList = {
   Login: undefined;
   Nickname: undefined;
   RewardList: undefined;
-  RewardDetail: undefined;
-  Main: {
-    screen?: keyof TabParamList;
-    params?: {
-      newPost?: {
-        id: number;
-        name: string;
-        time: string;
-        content: string;
-        image?: { uri: string };
-        comments: number;
-        likes: number;
-        shares: number;
-        profile: any;
-      };
-    };
-  };  
+  Reward: undefined;
+  RewardDetail: { challengeId: number; keyword: string; category: string; };
+  Inventory: undefined;
+  Main: { screen: keyof TabParamList;  };
   Home: undefined;
   Shop: undefined;
   Profile: undefined;
   Search: undefined;
-  Detail: { name: string; carbonGrams: number; category: string; explanation: string; carbonItemId: number; };
+  Detail: { name: string; carbonGrams: number; categoryKorean: string; explanation: string; carbonItemId: number; categoryImageUrl: string; };
 };

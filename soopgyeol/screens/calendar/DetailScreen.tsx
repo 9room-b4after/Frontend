@@ -1,19 +1,19 @@
 import React, { useState,useEffect } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
-import { useRoute, useNavigation } from '@react-navigation/native';
+import { useRoute, useNavigation,NavigationProp  } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '../../types/navigation';
 import Colors from '../../components/Colors';
 import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function DetailScreen() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
 
   const route = useRoute<RouteProp<RootStackParamList, 'Detail'>>();
-  const { name, carbonGrams, category, explanation, carbonItemId } = route.params;
-  const [quantity, setQuantity] = useState(1);
-  const userId = 1;       
-
+  const { name, carbonGrams, categoryKorean, explanation, carbonItemId, categoryImageUrl  } = route.params;
+  const [quantity, setQuantity] = useState(1);     
+  
   const handleMinus = () => {
     if (quantity > 1) setQuantity(quantity - 1);
   };
@@ -24,24 +24,40 @@ export default function DetailScreen() {
 
   const handleSave = async () => {
     try {
-      const response = await axios.post('https://soopgyeol.site/carbon/log', {
-        userId,
-        carbonItemId,
-        quantity,
-      });
+      const token = await AsyncStorage.getItem('accessToken');
+      if (!token) {
+        alert('로그인이 필요합니다.');
+        return;
+      }
+
+      const response = await axios.post(
+        'https://soopgyeol.site/carbon/log',
+        {
+          carbonItemId,
+          quantity,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
 
       console.log('저장 성공:', response.data);
-
       alert('탄소 소비 기록이 저장되었습니다!');
-      navigation.goBack();
+      
+      navigation.navigate('Main', { screen: 'Calendar' });
+
     } catch (error) {
       console.error('저장 실패:', error);
       alert('저장에 실패했습니다. 다시 시도해주세요.');
     }
   };
   useEffect(() => {
-  console.log('받은 carbonItemId:', carbonItemId);
-}, []);
+    console.log('받은 carbonItemId:', carbonItemId);
+  }, []);
+
   return (
     <View style={styles.container}>
       {/* 상단 바 */}
@@ -49,17 +65,29 @@ export default function DetailScreen() {
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backButton}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          hitSlop={{ top: 30, bottom: 30, left: 30, right: 30 }}
         >
           <Image source={require('../../assets/ic_back_arrow.png')} style={styles.backIcon} />
         </TouchableOpacity>
       </View>
 
-      {/* 이미지 박스 */}
       <View style={styles.imageContainer}>
-        <Image source={require('../../assets/img_category_sample.png')} style={styles.imageBox} />
+        <View style={styles.imageBox}>
+          {categoryImageUrl ? (
+            <Image
+              source={{ uri: categoryImageUrl }}
+              style={styles.imageInner}
+              resizeMode="contain"
+            />
+          ) : (
+            <Image
+              source={require('../../assets/img_category_sample.png')}
+              style={styles.imageInner}
+              resizeMode="contain"
+            />
+          )}
+        </View>
       </View>
-
       {/* 정보들 */}
       <View style={styles.infoSection}>
         <View style={styles.dividerBlock}>
@@ -67,7 +95,7 @@ export default function DetailScreen() {
         </View>
 
         <View style={styles.dividerBlock}>
-          <Text style={styles.label}>분류: <Text style={styles.value}>{category}</Text></Text>
+          <Text style={styles.label}>분류: <Text style={styles.value}>{categoryKorean}</Text></Text>
         </View>
         <View style={styles.dividerBlock}>
           <Text style={styles.label}>탄소량: <Text style={styles.valueHighlight}>{carbonGrams.toFixed(1)}g</Text></Text>
@@ -116,18 +144,32 @@ const styles = StyleSheet.create({
     resizeMode: 'contain',
   },
   backButton: {
-    padding: 10,
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   imageContainer: {
     alignItems: 'center',
     position: 'relative',
     marginTop: 12,
   },
+
   imageBox: {
     width: 332,
     height: 200,
     borderRadius: 20,
+    backgroundColor: '#fff',  
+    overflow: 'hidden',       
+    justifyContent: 'center',  
+    alignItems: 'center',      
   },
+
+  imageInner: {
+    width: '100%',
+    height: '100%',
+  },
+
   infoSection: {
     paddingHorizontal: 30,
     marginTop: 30,
@@ -144,8 +186,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 20,
     fontWeight: 'bold',
-    marginRight: 8,
-    
+    marginRight: 8,  
   },
   value: {
     fontSize: 20,

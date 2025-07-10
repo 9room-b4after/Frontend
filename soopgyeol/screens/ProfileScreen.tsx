@@ -1,16 +1,155 @@
 // screens/shop/ProfileScreen.tsx
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import { View, Text, StyleSheet, Image, TextInput, TouchableOpacity, Dimensions, } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Colors from '../components/Colors';
 import { useNavigation } from '@react-navigation/native';
+import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import type { RootStackParamList } from '../types/navigation'; 
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 const { width } = Dimensions.get('window');
 
 export default function ProfileScreen() {
-  const navigation = useNavigation();
-  const [nickname, setNickname] = useState('지지');
-  const [editable, setEditable] = useState(false); 
+  const [nickname, setNickname] = useState('');
+  const [email, setEmail] = useState(''); 
+
+  const [levelTextOverlay, setLevelTextOverlay] = useState('Lv.1 새싹지기');
+  const [levelIconUrl, setLevelIconUrl] = useState('');
+  const [slogan] = useState('“ 환경 보호의 첫 걸음을 내딘는 순수한 시작 ”');
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+
+  const getNextGradeParts = (heroName?: string) => {
+    switch (heroName) {
+      case 'Lv.1 새싹지기':
+        return { textBefore: '"환경 보호의 ', highlight: '첫 걸음', textAfter: '을 내딛는 순수한 시작"' };
+      case 'Lv.2 줄임꾼':
+        return { textBefore: '', highlight: '"작은 실천', textAfter: '으로 지구를 지켜가는 단계"' };
+      case 'Lv.3 탐험가':
+        return { textBefore: '', highlight: '"새로운 탄소 줄이기', textAfter: ' 방법에 도전하는 단계"' };
+      case 'Lv.4 지구지킴이':
+        return { textBefore: '', highlight: '"탄소 중립', textAfter: '을 실현하는 환경 영웅"' };
+      default:
+        return { textBefore: '', highlight: '...', textAfter: '' };
+    }
+  };
+
+  const getHighlightColor = (heroName?: string) => {
+    if (heroName === 'Lv.1 새싹지기' || heroName === 'Lv.2 줄임꾼'|| heroName === 'Lv.3 탐험가'|| heroName === 'Lv.4 지구지킴이') return Colors.mint;
+    return '#000';
+  };
+  
+  const { textBefore, highlight, textAfter } = getNextGradeParts(levelTextOverlay);
+  const highlightColor = getHighlightColor(levelTextOverlay);
+  const fetchUserProfile = async () => {
+    try {
+      const token = await AsyncStorage.getItem('accessToken');
+      if (!token) {
+        console.warn('로그인이 필요합니다.');
+        return;
+      }
+
+      const res = await axios.get('https://soopgyeol.site/api/v1/users/me', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (res.data) {
+        setNickname(res.data.nickname || '');
+        setEmail(res.data.email || ''); 
+      }
+    } catch (error) {
+      console.error('프로필 정보 불러오기 실패:', error);
+    }
+  };
+  const fetchHeroStage = async () => {
+    try {
+      const token = await AsyncStorage.getItem('accessToken');
+      if (!token) {
+        console.warn('로그인이 필요합니다.');
+        return;
+      }
+
+      const res = await axios.get('https://soopgyeol.site/hero-stage', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',          
+        },
+      });
+      if (res.data.success) {
+        const data = res.data.data;
+        setLevelTextOverlay(data.heroName);
+        setLevelIconUrl(data.heroUrl);        
+      }
+      } catch (error) {
+        console.error('영웅 등급 불러오기 실패:', error);
+      }
+    };
+    
+  useEffect(() => {
+    fetchUserProfile();
+    fetchHeroStage();
+  }, []);
+  const handleWithdraw = async () => {
+  try {
+    const token = await AsyncStorage.getItem('accessToken');
+    if (!token) {
+      alert('로그인이 필요합니다.');
+      return;
+    }
+
+    const response = await axios.delete('https://soopgyeol.site/api/v1/users/me', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    if (response.status === 200) {
+      alert('회원 탈퇴가 완료되었습니다.');
+      await AsyncStorage.removeItem('accessToken');
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Login' }],
+      });
+    } else {
+      alert('회원 탈퇴에 실패했습니다.');
+    }
+  } catch (error) {
+    console.error('회원 탈퇴 실패:', error);
+    alert('회원 탈퇴 중 오류가 발생했습니다.');
+  }};
+
+  const saveNickname = async () => {
+  try {
+    const token = await AsyncStorage.getItem('accessToken');
+    if (!token) {
+      alert('로그인이 필요합니다.');
+      return;
+    }
+    const response = await axios.patch(
+      'https://soopgyeol.site/api/v1/users/me/nickname',
+      { nickname },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+  if (response.data?.nickname) {
+    alert('닉네임이 성공적으로 변경되었습니다!');
+    setNickname(response.data.nickname);  
+  } else {
+    console.log('서버 응답:', response.data);
+    alert('닉네임 변경에 실패했습니다.');
+  }
+  } catch (error) {
+    console.error('닉네임 변경 실패:', error);
+    alert('닉네임 변경 중 오류가 발생했습니다.');
+  }};
   return (
     <View style={styles.container}>
       <Image
@@ -35,53 +174,32 @@ export default function ProfileScreen() {
             source={require('../assets/ic_sample_profile.png')}
             style={styles.profileImage}
           />
-          <TouchableOpacity style={styles.cameraIcon}>
-            <Image
-              source={require('../assets/ic_camera_white.png')}
-              style={styles.cameraIconImage}
-            />
-          </TouchableOpacity>
         </View>
-
         <View style={styles.levelSection}>
-          <Text style={styles.slogan}>
-            “ 환경 보호의 <Text style={styles.highlight}>첫 걸음</Text>을 내딘는 순수한 시작 ”
-          </Text>
-
           <View style={styles.levelBox}>
-            <Image
-              source={require('../assets/bg_profile_level.png')}
-              style={styles.levelBg}
-            />
-              <Image
-              source={require('../assets/bg_profile_level_line.png')}
-              style={styles.levelOverlay}
-            />
-            <Image
-              source={require('../assets/ic_profile_level.png')}
-              style={styles.levelIcon}
-            />
-            <Text style={styles.levelTextOverlay}>Lv.1 새싹지기</Text>
-            <Image
-              source={require('../assets/img_seed_first.png')}
-              style={styles.treeImage}
-            />  
+            {levelIconUrl && (
+              <Image source={{ uri: levelIconUrl }} style={styles.treeImage} />
+            )}
           </View>
+            <Text style={styles.slogan}>
+              {textBefore}
+            <Text style={{ color: highlightColor, fontWeight: 'bold' }}>{highlight}</Text>
+              {textAfter}
+          </Text>
         </View>
       </View>
+
       <View style={styles.inputSection}>
         <Text style={styles.label}>닉네임</Text>
         <View style={styles.inputWrapper}>
           <TextInput
             style={styles.input}
             value={nickname}
-            editable={editable} 
             onChangeText={setNickname}
           />
           <TouchableOpacity
             onPress={() => {
               setNickname('');
-              setEditable(true); 
             }}
             style={styles.clearButton}
           >
@@ -100,17 +218,13 @@ export default function ProfileScreen() {
             source={require('../assets/ic_kakao.png')}
             style={styles.kakaoIcon}
           />
-          <Text style={styles.email}>KYR1234@gmail.com</Text>
+          <Text style={styles.email}>{email || '이메일 없음'}</Text>  
         </View>
       </View>
-
-      {/* 저장 버튼 */}
-      <TouchableOpacity style={styles.saveButton}>
+      <TouchableOpacity style={styles.saveButton} onPress={saveNickname}>
         <Text style={styles.saveButtonText}>저장하기</Text>
       </TouchableOpacity>
-
-      {/* 회원탈퇴 */}
-      <TouchableOpacity>
+      <TouchableOpacity onPress={handleWithdraw}>
         <Text style={styles.withdrawText}>회원탈퇴</Text>
       </TouchableOpacity>
     </View>
@@ -161,7 +275,6 @@ const styles = StyleSheet.create({
   profileSection: 
   { 
     alignItems: 'center', 
-    marginTop: 20 
   },
   profileWrapper: {
     position: 'relative',
@@ -173,34 +286,14 @@ const styles = StyleSheet.create({
     height: 120,
     borderRadius: 50,
   },
-  cameraIcon: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 40,
-    height: 40,
-    backgroundColor: Colors.mint,
-    borderRadius: 20,
-    padding: 4,
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
-  cameraIconImage: {
-    width: 27,
-    height: 27,
-    resizeMode: 'contain',
-  },
-
   levelSection: {
     alignItems: 'center',
-    marginTop: 24,
   },
 
   slogan: {
-    fontSize: 17,
+    fontSize: 22,
     textAlign: 'center',
     marginBottom: 12,
-    fontWeight: 'bold'
   },
 
   highlight: {
@@ -215,48 +308,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
-    
-  },
-  levelBg: {
-    width: '97%',
-    height: '97%',
-    resizeMode: 'contain',    
-  },
-  levelOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: '100%',
-    height: '100%',
-    resizeMode: 'contain',    
+
   },
 
-  levelIcon: {
-    position: 'absolute',
-    top: 30, 
-    alignSelf: 'center',
-    width: 124,
-    height: 32,
-    resizeMode: 'contain', 
-  },
-
-  levelTextOverlay: {
-   position: 'absolute',
-    top: 35,               
-    alignSelf: 'center',
-    fontSize: 20,
-    color: '#fff',
-    fontWeight: 'bold',
-  },
   treeImage: {
-    position: 'absolute',     
-    bottom: 40,              
-    alignSelf: 'center',     
-    width: 33,
-    height: 38,
+    position: 'relative',
+    alignSelf: 'center',
+    width: 180,                
+    height: 180,             
     resizeMode: 'contain',
   },
-
   inputSection: 
   { 
     marginHorizontal: 20, 

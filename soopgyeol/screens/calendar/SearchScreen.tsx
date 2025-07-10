@@ -1,56 +1,71 @@
 // SearchScreen.tsx
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Colors from '../../components/Colors';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../types/navigation';
 import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type CarbonItem = {
   name: string;
   carbonGrams: number;
-  category: string;
+  categoryKorean: string;
   explanation: string;
   carbonItemId: number;
+  categoryImageUrl: string;
 };
 
 export default function SearchScreen() {
   const [searchText, setSearchText] = useState('');
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [notFound, setNotFound] = useState(false);
+  const [isLoading, setIsLoading] = useState(false); 
 
   const handleSubmit = async () => {
     if (!searchText.trim()) return;
-
+    setIsLoading(true); 
     try {
-      const response = await axios.post('https://soopgyeol.site/carbon/analyze', {
-        userInput: searchText.trim(),
-      });
-    console.log('API 응답:', response.data); 
-      
-    const data: CarbonItem = response.data.data;
-    console.log('응답 데이터:', data);
+      const token = await AsyncStorage.getItem('accessToken');
+      if (!token) {
+        console.warn('로그인 토큰이 없습니다.');
+        return;
+      }
 
-    if (!data || !data.name) {
-      setNotFound(true);
-      return;
-    }
+      const response = await axios.post(
+        'https://soopgyeol.site/carbon/analyze',
+        {
+          userInput: searchText.trim(),
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      const data: CarbonItem = response.data.data;
+      if (!data || !data.name) {
+        setNotFound(true);
+        setIsLoading(false); 
+        return;
+      }
 
-    setNotFound(false);
-
+      setNotFound(false);
+      setIsLoading(false);
       navigation.navigate('Detail', {
         name: data.name,
         carbonGrams: data.carbonGrams,
-        category: data.category,
+        categoryKorean: data.categoryKorean,
         explanation: data.explanation,
         carbonItemId: data.carbonItemId,
-        
+        categoryImageUrl: data.categoryImageUrl
       });
     } catch (error) {
       console.error('API 호출 오류:', error);
+      setIsLoading(false);
     }
-    
   };
 
   return (
@@ -60,7 +75,7 @@ export default function SearchScreen() {
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backButton}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          hitSlop={{ top: 30, bottom: 30, left: 30, right: 30 }}
         >
           <Image source={require('../../assets/ic_back_arrow.png')} style={styles.backIcon} />
         </TouchableOpacity>
@@ -68,7 +83,6 @@ export default function SearchScreen() {
         <View style={{ width: 24 }} />
       </View>
 
-      {/* 검색창 */}
       <View style={styles.searchBox}>
         <Image
           source={require('../../assets/ic_search.png')}
@@ -87,8 +101,12 @@ export default function SearchScreen() {
           returnKeyType="search"
         />
       </View>
+      {isLoading && (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors.mint} />
+        </View>
+      )}
 
-      {/* 안내 메시지 */}
       {searchText.trim() === '' && (
         <View style={styles.placeholderContainer}>
           <Image
@@ -99,7 +117,6 @@ export default function SearchScreen() {
         </View>
       )}
 
-      {/* 결과 없음 안내 */}
       {notFound && (
         <View style={styles.noResultContainer}>
           <Image
@@ -132,7 +149,10 @@ const styles = StyleSheet.create({
     resizeMode: 'contain',
   },
   backButton: {
-    padding: 10,
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerText: {
     position: 'absolute',
@@ -225,17 +245,9 @@ const styles = StyleSheet.create({
   resultVolume: {
     fontSize: 15,
   },
-  badgeButton: {
-    position: 'absolute',
-    right: 19,
-    bottom: 19,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  badgeText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 12,
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

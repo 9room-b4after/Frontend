@@ -1,52 +1,94 @@
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import { Calendar } from 'react-native-calendars';
 import Colors from '../../components/Colors';
 import dayjs from 'dayjs';
 import 'dayjs/locale/ko';
 import { Image } from 'react-native';
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect} from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../types/navigation';
 import { useFocusEffect } from '@react-navigation/native';
 import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 dayjs.locale('ko');
-
 type CarbonRecord = {
   product: string;
-  quantity: number;
-  carbon: number;
-  recordedAt: string;
+  growthPoint: number;
 };
 
 export default function CalendarScreen({ calendarRef }: { calendarRef: React.RefObject<{ goToToday: () => void }> }) {
-  const [selectedDate, setSelectedDate] = useState('2025-03-07');
-  const calendarCompRef = useRef<any>(null);
+  const today = new Date().toISOString().split('T')[0]; 
+  const [selectedDate, setSelectedDate] = useState(today);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [records, setRecords] = useState<CarbonRecord[]>([]);
+  const [totalGrowthPoint, setTotalGrowthPoint] = useState<number>(0); 
+  const [challengeText, setChallengeText] = useState<string>('기록 없음');
+  const [challengeList, setChallengeList] = useState<any[]>([]);
 
-  const userId: number = 1;
+  const fetchDailyRecords = async () => {
+    try {
+      const token = await AsyncStorage.getItem('accessToken');          
+      if (!token) {
+        console.warn('토큰이 없습니다. 로그인 후 이용해주세요.');          
+        return;
+      }
+      const response = await axios.get('https://soopgyeol.site/carbon/log/daily', {
+        params: { date: selectedDate },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      setRecords(response.data.data.logs);
+      setTotalGrowthPoint(response.data.data.totalGrowthPoint || 0);
+    } catch (error) {                  
+      console.error('일일 탄소 기록 조회 실패:', error);
+    }
+  };
+  const fetchChallengeHistory = async () => {
+    try {
+      const token = await AsyncStorage.getItem('accessToken');
+      if (!token) return;
+
+      const response = await axios.get('https://soopgyeol.site/challenges/history', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const history = response.data.data || [];
+      setChallengeList(history);
+      const selectedChallenge = history.find(challenge => {
+        const challengeDate = challenge.createdAt?.split('T')[0];
+        return challengeDate === selectedDate;
+      });
+
+      if (selectedChallenge) {
+        const { title, progressCount } = selectedChallenge;
+        const text = `${title || '제목 없음'} ${progressCount ?? 0}회`;
+        setChallengeText(text);
+      } else {
+        setChallengeText('기록 없음');
+      }
+
+    } catch (error) {
+      console.error('챌린지 내역 조회 실패:', error);
+      setChallengeText('기록 없음');
+    }
+  };
 
   useFocusEffect(
     React.useCallback(() => {
-      const fetchRecords = async () => {
-        try {
-            const response = await axios.get('https://soopgyeol.site/carbon/log', {
-            params: {
-              userId: userId 
-            }
-          });
-          console.log('전체 응답:', JSON.stringify(response.data, null, 2));
-
-          setRecords(response.data.data); 
-        } catch (error) {
-          console.error('탄소 기록 조회 실패:', error);
-        }
+      const fetchAll = async () => {
+        await fetchDailyRecords();
+        await fetchChallengeHistory(); 
       };
 
-      fetchRecords();
-    }, [])
+      fetchAll();
+    }, [selectedDate])
   );
 
   return (
@@ -87,9 +129,18 @@ export default function CalendarScreen({ calendarRef }: { calendarRef: React.Ref
           textMonthFontSize: 20,        // 상단 월/년도 크기 증가
           textDayHeaderFontSize: 15,    // 요일 텍스트 크기 증가
         }}
-  
       />
+      <View style={styles.challengeBox}>
+        <Text style={styles.challengeLabel}>오늘의 챌린지 :</Text>
+        <Text style={styles.challengeText}>{challengeText}</Text>
+      </View>
+
       <View style={{ flex: 1 }}>
+        <View style={styles.recordItem}>
+          <Image source={require('../../assets/ic_mint_circle.png')} style={styles.bulletIcon} />
+          <Text style={styles.title}>총 점수</Text>
+          <Text style={styles.detail}>{totalGrowthPoint}점</Text>
+        </View>
         <FlatList
           data={records}
           keyExtractor={(_, index) => index.toString()}
@@ -98,7 +149,7 @@ export default function CalendarScreen({ calendarRef }: { calendarRef: React.Ref
               <Image source={require('../../assets/ic_mint_circle.png')} style={styles.bulletIcon} />
               <Text style={styles.title}>{item.product}</Text>
               <Text style={styles.detail}>
-                {item.quantity}개 / {item.carbon}g / {dayjs(item.recordedAt).format('YYYY.MM.DD')}
+                {item.growthPoint}점
               </Text>
             </View>
           )}
@@ -131,7 +182,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 0, 
   },
-
   headerText: {
     fontSize: 20,
     fontWeight: 'bold',
@@ -151,10 +201,29 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     color: '#fff',
   },
+  challengeBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FFC30080',
+    width: 370,
+    height: 50,
+    marginTop: 12,
+    borderWidth: 3,
+    borderColor: '#FFC300', 
+  },
+  challengeLabel: {
+    fontSize: 17,
+    marginLeft: 20,
+  },
+  challengeText: {
+    fontSize: 17,
+    marginRight: 20,
+  },
   recordList: {
     position: 'absolute',
     top: 350,
-
     paddingHorizontal: 20,
   },
   recordItem: {
@@ -179,7 +248,7 @@ const styles = StyleSheet.create({
   },
   detail: {
     fontSize: 17,
-    marginRight: 18
+    marginRight: 25
   },
   button: {
     backgroundColor: Colors.mint,

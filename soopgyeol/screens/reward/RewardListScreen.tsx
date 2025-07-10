@@ -1,21 +1,53 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, SafeAreaView, TouchableOpacity, Image } from 'react-native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../types/navigation';
 import { useNavigation } from '@react-navigation/native';
-
-const DATA = [
-  {
-    id: '1',
-    title: '다회용컵 사용 3회',
-    status: '완수',
-    date: '5/22',
-  },
-];
+import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import dayjs from 'dayjs';
 
 export default function RewardListScreen() {
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-    const renderItem = ({ item }: { item: typeof DATA[0] }) => (
+  const [challengeList, setChallengeList] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchChallengeHistory = async () => {
+    try {
+      const token = await AsyncStorage.getItem('accessToken');
+      if (!token) {
+        console.warn('로그인이 필요합니다.');
+        return;
+      }
+
+      const res = await axios.get('https://soopgyeol.site/challenges/history', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+
+      const formattedData = res.data.data.map((item: any, index: number) => ({
+        id: index.toString(),
+        title: item.title || '-',
+        status: item.completed ? '완수' : '미완수',
+        date: dayjs(item.createdAt).format('M/D'),
+      }));
+
+      setChallengeList(formattedData);
+    } catch (error) {
+      console.error('챌린지 내역 조회 실패:', error.response?.data || error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchChallengeHistory();
+  }, []);
+
+  const renderItem = ({ item }: { item: any }) => (
     <View style={styles.itemContainer}>
       <View>
         <Text style={styles.itemTitle}>{item.title}</Text>
@@ -37,12 +69,16 @@ export default function RewardListScreen() {
           <Image source={require('../../assets/ic_back_arrow.png')} style={styles.backIcon} />
         </TouchableOpacity>
       </View>
+
       {/* 리스트 */}
       <FlatList
-        data={DATA}
+        data={challengeList}
         renderItem={renderItem}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContainer}
+        ListEmptyComponent={!loading && (
+          <Text style={{ textAlign: 'center', marginTop: 20 }}>진행한 챌린지가 없습니다.</Text>
+        )}
       />
     </View>
   );
