@@ -312,16 +312,16 @@ const styles = StyleSheet.create({
     width: 60,
   },
   coinIcon: {
-    width: 80,
+    width: 90,
     height: 30,
     marginRight: 4,
   },
   coinText: {
     position: 'absolute',
-    fontSize: 20,
-    marginLeft: 10,
+    fontSize: 18,
+    marginLeft: 14,
     fontWeight: 'bold',
-    color: Colors.yellow,
+    color: Colors.yellow
   },
   previewBox: {
     width: 220,
@@ -329,10 +329,9 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     justifyContent: 'center',
     alignItems: 'center',
-    
   },
   previewImage: {
-    width: '99%',
+    width: '96%',
     height: '100%',
     position: 'absolute',
     bottom: 0,
@@ -341,7 +340,7 @@ const styles = StyleSheet.create({
     borderRadius: 19,       
   },
   overlayImage: {
-    width: 218,
+    width: 212,
     height: 300,
     position: 'absolute',
     bottom: 0,
@@ -399,7 +398,7 @@ const styles = StyleSheet.create({
     height: 80,
   },
   skyPosition: {
-    top: 70,
+    top: 20,
     alignSelf: 'center',
   },
   leftPosition: {

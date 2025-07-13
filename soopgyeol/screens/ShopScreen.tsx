@@ -291,7 +291,7 @@ const styles = StyleSheet.create({
   backButton: {
     padding: 10,
   },
-    backIcon: {
+  backIcon: {
     width: 24,
     height: 24,
     resizeMode: 'contain',
@@ -315,14 +315,14 @@ const styles = StyleSheet.create({
     width: 60,
   },
   coinIcon: {
-    width: 80,
+    width: 90,
     height: 30,
     marginRight: 4,
   },
   coinText: {
     position: 'absolute',
-    fontSize: 20,
-    marginLeft: 10,
+    fontSize: 18,
+    marginLeft: 14,
     fontWeight: 'bold',
     color: Colors.yellow
   },
@@ -352,7 +352,7 @@ const styles = StyleSheet.create({
     position: 'relative', 
   },
   previewImage: {
-    width: '99%',
+    width: '96%',
     height: '100%',
     position: 'absolute',
     bottom: 0,

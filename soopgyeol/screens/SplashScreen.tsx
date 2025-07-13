@@ -35,23 +35,23 @@ export default function SplashScreen() {
   ]).start();
   };
   useEffect(() => {
-  const checkUserStatus = async () => {
-  try {
-    const token = await AsyncStorage.getItem('accessToken');
-    if (token) {
-      navigation.replace('Main'); 
-    } else {
-      navigation.replace('Login'); 
-    }
-    } catch (error) {
-      console.error('토큰 확인 실패:', error);
-      navigation.replace('Login');      
-    }
-    };
+    const checkUserStatus = async () => {
+    try {
+      const token = await AsyncStorage.getItem('accessToken');
+      if (token) {
+        navigation.replace('Login'); 
+      } else {
+        navigation.replace('Login'); 
+      }
+      } catch (error) {
+        console.error('토큰 확인 실패:', error);
+        navigation.replace('Login');      
+      }
+  };
 
   const timer = setTimeout(() => {
     checkUserStatus();
-  }, 4000);
+  }, 8000);
 
     return () => clearTimeout(timer);
   }, []);
